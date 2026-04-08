@@ -14,8 +14,6 @@ interface ExplorePageProps {
   }>;
 }
 
-// ─── Data Fetching Wrapper ─────────────────────────────────────────────────────
-
 async function RecipeGrid({ params }: { params: Awaited<ExplorePageProps['searchParams']> }) {
   const { sort, tags, query } = params;
 
@@ -24,24 +22,24 @@ async function RecipeGrid({ params }: { params: Awaited<ExplorePageProps['search
     ? (sort as SortOption)
     : (!sort && !tags && !query ? 'popular' : 'newest');
 
-  // getRecipes logic from your file
   const recipes = await getRecipes({
     sort: activeSort,
     tag: tags ?? 'All',
     query: query ?? '',
+    page: 0,      // Start at page 0
+    pageSize: 9,  // Match the PAGE_SIZE in ExploreClient
   });
 
-  if (recipes.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 text-center">
-        <span className="text-4xl mb-4">🔍</span>
-        <p className="text-white/40 text-sm font-medium">No matches found.</p>
-        <p className="text-white/20 text-xs mt-1">Try adjusting your search or filters.</p>
-      </div>
-    );
-  }
-
-  return <ExploreClient recipes={recipes} />;
+  // CRITICAL: Ensure the prop name matches 'initialRecipes' 
+  // and provide a fallback empty array [] just in case.
+  return (
+    <ExploreClient 
+      initialRecipes={recipes || []} 
+      activeSort={activeSort}
+      activeTag={tags ?? 'All'}
+      activeQuery={query ?? ''}
+    />
+  );
 }
 
 export default async function ExplorePage({ searchParams }: ExplorePageProps) {

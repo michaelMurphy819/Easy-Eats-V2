@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es2022",
     "lib": [
       "dom",
       "dom.iterable",
@@ -13,7 +13,7 @@
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "bundler", // Changed from 'bundler' to support Next.js types
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
@@ -23,11 +23,12 @@
         "name": "next"
       }
     ],
-    "baseUrl": ".", // Essential for path aliasing
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./src/*"
-      ] // This maps your '@' imports to the 'src' folder
+      ]
     }
   },
   "include": [

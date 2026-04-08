@@ -1,3 +1,4 @@
+// src/lib/db/queries/recipes.ts
 import { createClient } from './client';
 
 const supabase = createClient();
@@ -8,11 +9,27 @@ export interface GetRecipesOptions {
   sort?: SortOption;
   tag?: string;
   query?: string;
-  authorId?: string; // Added to support fetching specific user's recipes on Profile
+  authorId?: string;
+  page?: number;      // Current page index (0, 1, 2...)
+  pageSize?: number;  // Number of items per page
 }
 
-export async function getRecipes({ sort, tag, query, authorId }: GetRecipesOptions) {
+/**
+ * Fetches recipes with support for procedural (infinite) loading.
+ */
+export async function getRecipes({ 
+  sort, 
+  tag, 
+  query, 
+  authorId, 
+  page = 0, 
+  pageSize = 10 
+}: GetRecipesOptions) {
   try {
+    // Calculate the range for Supabase
+    const from = page * pageSize;
+    const to = from + pageSize - 1;
+
     let supabaseQuery = supabase
       .from('recipes')
       .select(`
@@ -24,7 +41,7 @@ export async function getRecipes({ sort, tag, query, authorId }: GetRecipesOptio
         )
       `);
 
-    // 1. Filter by Author (Crucial for Profile Page)
+    // 1. Filter by Author
     if (authorId) {
       supabaseQuery = supabaseQuery.eq('author_id', authorId);
     }
@@ -34,12 +51,15 @@ export async function getRecipes({ sort, tag, query, authorId }: GetRecipesOptio
       supabaseQuery = supabaseQuery.ilike('title', `%${query}%`);
     }
 
-    // 3. Tag Logic (Matches your text[] 'tags' column)
+    // 3. Tag Logic
     if (tag && tag !== 'All') {
       supabaseQuery = supabaseQuery.contains('tags', [tag]);
     }
 
-    // 4. Sorting
+    // 4. Pagination Range
+    supabaseQuery = supabaseQuery.range(from, to);
+
+    // 5. Sorting
     if (sort === 'popular') {
       supabaseQuery = supabaseQuery.order('likes', { ascending: false });
     } else {
@@ -76,7 +96,7 @@ export const fetchRecipeById = async (id: string) => {
         )
       `)
       .eq('id', id)
-      .maybeSingle(); // Better than .single() for avoiding 406 errors
+      .maybeSingle();
 
     if (error) throw error;
 
@@ -87,16 +107,13 @@ export const fetchRecipeById = async (id: string) => {
   }
 };
 
-// ─── LIKES LOGIC (Fixes the 404) ──────────────────────────────────────────
-
 /**
- * Checks if a specific user has liked a specific recipe
- * Matches your table name 'likes' (singular) from SQL
+ * Checks if a specific user has liked a specific recipe.
  */
 export const checkUserLike = async (recipeId: string, userId: string) => {
   try {
     const { data, error } = await supabase
-      .from('likes') // Changed from recipe_likes to likes
+      .from('likes') 
       .select('id')
       .eq('recipe_id', recipeId)
       .eq('user_id', userId)
@@ -110,7 +127,6 @@ export const checkUserLike = async (recipeId: string, userId: string) => {
 };
 
 export const deleteRecipe = async (id: string) => {
-  // Supabase RLS will handle security, but we'll call the delete
   const { error } = await supabase
     .from('recipes')
     .delete()

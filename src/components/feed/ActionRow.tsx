@@ -36,7 +36,7 @@ export function ActionRow({ recipeId, variant = 'card' }: ActionRowProps) {
 
     const [{ count: likeCount }, { count: saveCount }] = await Promise.all([
       supabase
-        .from('recipe_likes')
+        .from('likes')
         .select('*', { count: 'exact', head: true })
         .eq('recipe_id', recipeId),
       supabase
@@ -54,7 +54,7 @@ export function ActionRow({ recipeId, variant = 'card' }: ActionRowProps) {
 
     const [{ data: likeRow }, { data: saveRow }] = await Promise.all([
       supabase
-        .from('recipe_likes')
+        .from('likes')
         .select('id')
         .eq('recipe_id', recipeId)
         .eq('user_id', userId)
@@ -84,9 +84,9 @@ export function ActionRow({ recipeId, variant = 'card' }: ActionRowProps) {
     setCounts((c) => ({ ...c, likes: c.likes + (wasLiked ? -1 : 1) }));
 
     if (wasLiked) {
-      await supabase.from('recipe_likes').delete().eq('recipe_id', recipeId).eq('user_id', userId);
+      await supabase.from('likes').delete().eq('recipe_id', recipeId).eq('user_id', userId);
     } else {
-      await supabase.from('recipe_likes').insert({ recipe_id: recipeId, user_id: userId });
+      await supabase.from('likes').insert({ recipe_id: recipeId, user_id: userId });
     }
   };
 

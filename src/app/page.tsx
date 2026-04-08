@@ -2,15 +2,16 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useInView } from 'react-intersection-observer';
 import { FilterBar } from '@/components/feed/FilterBar';
 import { RecipeCard } from '@/components/feed/RecipeCard';
 import { UploadMeal } from '@/components/upload/UploadMeal';
 import { RecipeDetailOverlay } from '@/components/feed/RecipeDetailOverlay';
 import { createClient } from '@/lib/db/queries/client';
 import { useRouter } from 'next/navigation';
-import { seedSpoonacularRecipes } from '@/lib/utils/spoonacularSeeder';
 
 const BUCKET_URL = "https://mnakswmhlreuclyultdc.supabase.co/storage/v1/object/public/recipe-photos/";
+const PAGE_SIZE = 10;
 
 interface Recipe {
   id: string;
@@ -33,15 +34,24 @@ export default function Home() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [filter, setFilter] = useState('All');
   const [loading, setLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);
   const router = useRouter(); 
   
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [supabase] = useState(() => createClient());
+  const { ref, inView } = useInView();
 
-  const fetchRecipes = useCallback(async () => {
-    setLoading(true);
+  const fetchRecipes = useCallback(async (pageNum: number, isInitial: boolean = false) => {
+    if (isInitial) setLoading(true);
+    else setIsFetchingMore(true);
+
+    const from = pageNum * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
     const { data, error } = await supabase
       .from('recipes')
       .select(`
@@ -51,31 +61,39 @@ export default function Home() {
           username
         )
       `)
+      .range(from, to)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error("Error fetching recipes:", error);
-    } else {
-      setRecipes(data as Recipe[] || []);
+    if (!error && data) {
+      setRecipes(prev => isInitial ? data : [...prev, ...data]);
+      if (data.length < PAGE_SIZE) setHasMore(false);
     }
+    
     setLoading(false);
+    setIsFetchingMore(false);
   }, [supabase]);
 
   useEffect(() => {
     const init = async () => {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
       if (!user || authError) {
         router.push('/auth');
         return; 
       }
-
       setCurrentUserId(user.id);
-      await fetchRecipes();
+      await fetchRecipes(0, true);
     };
-
     init();
-  }, [fetchRecipes, router]);
+  }, [fetchRecipes, router, supabase.auth]);
+
+  // Load more when scrolled to bottom
+  useEffect(() => {
+    if (inView && hasMore && !loading && !isFetchingMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchRecipes(nextPage);
+    }
+  }, [inView, hasMore, loading, isFetchingMore, page, fetchRecipes]);
 
   const filtered = filter === 'All' 
     ? recipes 
@@ -125,12 +143,19 @@ export default function Home() {
             );
           })}
         </AnimatePresence>
+
+        {/* Sentry for Infinite Scroll */}
+        <div ref={ref} className="h-10 w-full flex justify-center items-center">
+          {isFetchingMore && (
+            <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+          )}
+        </div>
       </motion.div>
 
       <UploadMeal 
         isOpen={isUploadOpen} 
         onClose={() => setIsUploadOpen(false)} 
-        onRefresh={fetchRecipes} 
+        onRefresh={() => fetchRecipes(0, true)} 
       />
       
       <RecipeDetailOverlay 
