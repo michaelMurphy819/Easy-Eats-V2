@@ -39,3 +39,6 @@ yarn-error.log*
 *.swp
 *.swo
 *~
+
+# .md files
+employer_talking_points.md
