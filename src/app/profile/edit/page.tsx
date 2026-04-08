@@ -6,9 +6,8 @@ import { createClient } from '@/lib/db/queries/client';
 import { ArrowLeft, Save, Camera, Loader2, ChefHat, Leaf, MilkOff } from 'lucide-react';
 import Link from 'next/link';
 
-const supabase = createClient();
-
 export default function EditProfilePage() {
+  const [supabase] = useState(() => createClient());
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

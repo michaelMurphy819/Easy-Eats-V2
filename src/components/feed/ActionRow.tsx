@@ -5,8 +5,6 @@ import { Heart, Bookmark, Share2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/db/queries/client';
 
-const supabase = createClient();
-
 interface ActionRowProps {
   recipeId: string;
   /** Layout variant: 'card' for the feed card, 'detail' for the overlay */
@@ -19,6 +17,7 @@ interface Counts {
 }
 
 export function ActionRow({ recipeId, variant = 'card' }: ActionRowProps) {
+  const [supabase] = useState(() => createClient());
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [counts, setCounts] = useState<Counts>({ likes: 0, saves: 0 });

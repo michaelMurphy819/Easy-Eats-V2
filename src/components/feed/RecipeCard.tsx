@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Clock, DollarSign, Heart, Bookmark } from 'lucide-react'; // <-- Swapped Plus for Bookmark
 import { createClient } from '@/lib/db/queries/client'; 
 import { AuthorChip } from '@/components/feed/AuthorChip'; 
+import Image from 'next/image';
 
 interface RecipeCardProps {
   recipeId: string;
@@ -21,8 +22,6 @@ interface RecipeCardProps {
   onOpen: (id: string) => void;
 }
 
-const supabase = createClient();
-
 export function RecipeCard({ 
   recipeId, 
   title, 
@@ -38,6 +37,7 @@ export function RecipeCard({
   currentUserId, 
   onOpen 
 }: RecipeCardProps) {
+  const [supabase] = useState(() => createClient());
   
   const [imgError, setImgError] = useState(false);
   
@@ -128,16 +128,20 @@ export function RecipeCard({
             </span>
           </div>
         ) : (
-          <img 
-            src={finalSrc!} 
-            alt={title} 
-            className="w-full h-full min-h-[300px] max-h-[70vh] block object-cover group-hover:scale-[1.03] transition-transform duration-1000 ease-out" 
-            onError={() => {
-              console.warn(`Card failed to load image: ${finalSrc}`);
-              setImgError(true);
-            }} 
-          />
-        )}
+  <div className="relative w-full h-full min-h-[300px] max-h-[70vh]">
+    <Image 
+      src={finalSrc!} 
+      alt={title} 
+      fill
+      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+      className="object-cover group-hover:scale-[1.03] transition-transform duration-1000 ease-out" 
+      onError={() => {
+        console.warn(`Card failed to load image: ${finalSrc}`);
+        setImgError(true);
+      }} 
+    />
+  </div>
+)}
         
         {/* Floating Badge */}
         <div className="absolute top-6 left-6 z-10">

@@ -9,9 +9,8 @@ import {
   Moon, CircleHelp, FileText, ChevronRight, AlertCircle, Sun 
 } from 'lucide-react';
 
-const supabase = createClient();
-
 export default function SettingsPage() {
+  const [supabase] = useState(() => createClient());
   const router = useRouter();
   const { theme, setTheme, resolvedTheme } = useTheme();
   

@@ -6,9 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Utensils, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { createClient } from '@/lib/db/queries/client';
 
-const supabase = createClient();
-
 export default function AuthPage() {
+  const [supabase] = useState(() => createClient());
   const router = useRouter();
   
   const [isLogin, setIsLogin] = useState(true);

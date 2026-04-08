@@ -7,12 +7,12 @@ import { RecipeCard } from '@/components/feed/RecipeCard';
 import { RecipeDetailOverlay } from '@/components/feed/RecipeDetailOverlay';
 import { createClient } from '@/lib/db/queries/client';
 
-const supabase = createClient();
 const BUCKET_URL = "https://mnakswmhlreuclyultdc.supabase.co/storage/v1/object/public/recipe-photos/";
 
 // ... interfaces stay the same ...
 
 export default function CollectionPage() {
+  const [supabase] = useState(() => createClient());
   const [savedRecipes, setSavedRecipes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null);

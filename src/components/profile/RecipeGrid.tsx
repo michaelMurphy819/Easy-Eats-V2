@@ -24,10 +24,14 @@ export function RecipeGrid({ recipes, onOpen }: { recipes: any[], onOpen: (id: s
         >
           {recipe.image_url ? (
             <Image 
-              src={getFullImageUrl(recipe.image_url)} // <-- Updated this line!
+              src={getFullImageUrl(recipe.image_url)}
               alt={recipe.title} 
               fill
+              // Mobile: 2 columns (~50vw), Tablet/Desktop: 3 columns (~33vw)
+              sizes="(max-width: 768px) 50vw, 33vw"
               className="object-cover transition-transform duration-500 group-hover:scale-105"
+              // Add loading="lazy" (default) or priority for the first few items
+              priority={false} 
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-5xl bg-gradient-to-br from-border/20 to-transparent group-hover:scale-110 transition-transform duration-500">

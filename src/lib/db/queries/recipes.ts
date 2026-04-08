@@ -8,9 +8,10 @@ export interface GetRecipesOptions {
   sort?: SortOption;
   tag?: string;
   query?: string;
+  authorId?: string; // Added to support fetching specific user's recipes on Profile
 }
 
-export async function getRecipes({ sort, tag, query }: GetRecipesOptions) {
+export async function getRecipes({ sort, tag, query, authorId }: GetRecipesOptions) {
   try {
     let supabaseQuery = supabase
       .from('recipes')
@@ -18,18 +19,27 @@ export async function getRecipes({ sort, tag, query }: GetRecipesOptions) {
         *,
         profiles:author_id (
           username,
-          display_name
+          display_name,
+          avatar_url
         )
       `);
 
+    // 1. Filter by Author (Crucial for Profile Page)
+    if (authorId) {
+      supabaseQuery = supabaseQuery.eq('author_id', authorId);
+    }
+
+    // 2. Search Logic
     if (query && query.trim() !== '') {
       supabaseQuery = supabaseQuery.ilike('title', `%${query}%`);
     }
 
+    // 3. Tag Logic (Matches your text[] 'tags' column)
     if (tag && tag !== 'All') {
       supabaseQuery = supabaseQuery.contains('tags', [tag]);
     }
 
+    // 4. Sorting
     if (sort === 'popular') {
       supabaseQuery = supabaseQuery.order('likes', { ascending: false });
     } else {
@@ -38,58 +48,67 @@ export async function getRecipes({ sort, tag, query }: GetRecipesOptions) {
 
     const { data, error } = await supabaseQuery;
     
-    if (error) {
-      throw new Error(`Recipe Fetch Error: ${error.message}`);
-    }
-    
+    if (error) throw error;
     return data || [];
     
   } catch (err: any) {
-    console.error("Explore Query Failed:", err.message);
+    console.error("Recipe Query Failed:", err.message);
     return []; 
   }
 }
 
-// ─── Refined Helper with UUID Guard ───────────────────────────────────────
-
 export const fetchRecipeById = async (id: string) => {
-  /**
-   * 🛑 UUID GUARD
-   * If the ID is "new" or not a valid UUID format, we return null immediately.
-   * This prevents Supabase from throwing a 400 'invalid input syntax' error.
-   */
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   
-  if (!id || id === 'new' || !uuidRegex.test(id)) {
-    console.warn(`System: fetchRecipeById blocked invalid ID: "${id}"`);
-    return null;
-  }
+  if (!id || id === 'new' || !uuidRegex.test(id)) return null;
 
   try {
     const { data, error } = await supabase
       .from('recipes')
       .select(`
         *,
-        ingredients_list:ingredients!ingredients_recipe_id_fkey(*)
+        ingredients (
+          id,
+          name,
+          amount,
+          unit,
+          quantity
+        )
       `)
       .eq('id', id)
-      .single();
+      .maybeSingle(); // Better than .single() for avoiding 406 errors
 
-    if (error) {
-      // If no rows found, don't throw, just return null for the UI to handle
-      if (error.code === 'PGRST116') return null; 
-      throw new Error(error.message);
-    }
+    if (error) throw error;
 
-    return {
-      ...data,
-      ingredients: data.ingredients_list || []
-    };
+    return data;
   } catch (err: any) {
-    console.error("Fetch Logic Failed:", err.message);
+    console.error("Fetch Recipe Failed:", err.message);
     return null;
   }
 };
+
+// ─── LIKES LOGIC (Fixes the 404) ──────────────────────────────────────────
+
+/**
+ * Checks if a specific user has liked a specific recipe
+ * Matches your table name 'likes' (singular) from SQL
+ */
+export const checkUserLike = async (recipeId: string, userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('likes') // Changed from recipe_likes to likes
+      .select('id')
+      .eq('recipe_id', recipeId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) return false;
+    return !!data;
+  } catch {
+    return false;
+  }
+};
+
 export const deleteRecipe = async (id: string) => {
   // Supabase RLS will handle security, but we'll call the delete
   const { error } = await supabase
@@ -107,7 +126,7 @@ export const updateRecipe = async (id: string, updates: any) => {
     .update(updates)
     .eq('id', id)
     .select()
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;

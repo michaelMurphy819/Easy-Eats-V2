@@ -6,8 +6,6 @@ import { Send, Loader2 } from 'lucide-react';
 import { createClient } from '@/lib/db/queries/client';
 import { CommentItem, type CommentData } from './CommentItem';
 
-const supabase = createClient();
-
 interface CommentThreadProps {
   recipeId: string;
 }
@@ -26,6 +24,7 @@ function buildTree(rows: CommentData[]): CommentData[] {
 }
 
 export function CommentThread({ recipeId }: CommentThreadProps) {
+  const [supabase] = useState(() => createClient());
   const [comments, setComments] = useState<CommentData[]>([]);
   const [loading, setLoading] = useState(true);
   const [body, setBody] = useState('');

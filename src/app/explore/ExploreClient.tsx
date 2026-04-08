@@ -5,7 +5,6 @@ import { RecipeCard } from '@/components/feed/RecipeCard';
 import { RecipeDetailOverlay } from '@/components/feed/RecipeDetailOverlay';
 import { createClient } from '@/lib/db/queries/client'; 
 
-const supabase = createClient();
 const BUCKET_URL = "https://mnakswmhlreuclyultdc.supabase.co/storage/v1/object/public/recipe-photos/";
 
 interface Recipe {
@@ -30,6 +29,7 @@ interface ExploreClientProps {
 }
 
 export function ExploreClient({ recipes }: ExploreClientProps) {
+  const [supabase] = useState(() => createClient());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 

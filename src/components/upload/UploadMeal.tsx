@@ -9,8 +9,6 @@ import { IngredientBuilder } from './IngredientBuilder';
 import { StepBuilder } from './StepBuilder';
 import { TagSelector } from './TagSelector';
 
-const supabase = createClient();
-
 interface Ingredient {
   id: string;
   item: string;
@@ -25,6 +23,7 @@ interface UploadMealProps {
 }
 
 export function UploadMeal({ isOpen, onClose, onRefresh, initialRecipe }: UploadMealProps) {
+  const [supabase] = useState(() => createClient());
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);

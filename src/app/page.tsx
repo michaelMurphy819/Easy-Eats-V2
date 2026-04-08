@@ -10,7 +10,6 @@ import { createClient } from '@/lib/db/queries/client';
 import { useRouter } from 'next/navigation';
 import { seedSpoonacularRecipes } from '@/lib/utils/spoonacularSeeder';
 
-const supabase = createClient();
 const BUCKET_URL = "https://mnakswmhlreuclyultdc.supabase.co/storage/v1/object/public/recipe-photos/";
 
 interface Recipe {
@@ -39,6 +38,7 @@ export default function Home() {
   const router = useRouter(); 
   
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [supabase] = useState(() => createClient());
 
   const fetchRecipes = useCallback(async () => {
     setLoading(true);
@@ -59,7 +59,7 @@ export default function Home() {
       setRecipes(data as Recipe[] || []);
     }
     setLoading(false);
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
     const init = async () => {

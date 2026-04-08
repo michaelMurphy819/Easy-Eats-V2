@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    // AVIF is generally 20% smaller than WebP. This is a massive speed boost.
+    formats: ['image/avif', 'image/webp'], 
     remotePatterns: [
       {
         protocol: 'https',

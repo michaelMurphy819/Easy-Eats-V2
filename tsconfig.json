@@ -13,7 +13,7 @@
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "node", // Changed from 'bundler' to support Next.js types
+    "moduleResolution": "bundler", // Changed from 'bundler' to support Next.js types
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
@@ -34,11 +34,9 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
-    // Removed "src/main.jsx" to prevent Vite/Next.js conflicts
-    ,
+    ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
-, "src/components/providers/ClientProvider.stsx"  ],
+  ],
   "exclude": [
     "node_modules"
   ]

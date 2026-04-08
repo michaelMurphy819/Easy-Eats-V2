@@ -7,11 +7,10 @@ import { ProfileHeader } from '@/components/profile/ProfileHeader';
 import { RecipeGrid } from '@/components/profile/RecipeGrid';
 import { RecipeDetailOverlay } from '@/components/feed/RecipeDetailOverlay';
 
-const supabase = createClient();
-
 type TabType = 'posts' | 'saved' | 'tagged';
 
 export default function ProfilePage() {
+  const [supabase] = useState(() => createClient());
   const params = useParams();
   const router = useRouter();
   

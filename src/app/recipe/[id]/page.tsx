@@ -10,9 +10,8 @@ import { Recipe, Ingredient } from '@/types';
 import { ChevronLeft, Heart, Trash2, Edit3 } from 'lucide-react';
 import { createClient } from '@/lib/db/queries/client';
 
-const supabase = createClient();
-
 export default function RecipePage() {
+  const [supabase] = useState(() => createClient());
   const params = useParams();
   const router = useRouter();
   const id = params?.id as string;

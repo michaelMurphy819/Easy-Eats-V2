@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import Image from 'next/image';
 
 interface HeroImageProps {
   imageUrl?: string | null;
@@ -52,7 +53,7 @@ export function HeroImage({
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-full h-full flex items-center justify-center bg-foreground/[0.02]"
+            className="w-full h-full flex items-center justify-center bg-foreground/2"
           >
             <div
               className="absolute inset-0 opacity-20"
@@ -64,23 +65,29 @@ export function HeroImage({
               {emoji ?? '🍳'}
             </span>
           </motion.div>
-        ) : (
-          <motion.img
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            src={finalSrc!}
-            alt={title}
-            onError={() => {
-              console.warn(`Failed to load image: ${finalSrc}`);
-              setImgError(true);
-            }}
-            className="w-full h-full object-cover"
-          />
-        )}
+       ) : (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    className="relative w-full h-full"
+  >
+    <Image
+      src={finalSrc!}
+      alt={title}
+      fill
+      className="object-cover"
+      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 70vw, 50vw"
+      onError={() => {
+        console.warn(`Failed to load image: ${finalSrc}`);
+        setImgError(true);
+      }}
+    />
+  </motion.div>
+)}
       </div>
 
       {/* Overlay Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-linear-to-t from-background via-background/20 to-transparent pointer-events-none" />
 
       {/* Content */}
       <div className="absolute bottom-0 inset-x-0 p-8 flex flex-col justify-end">

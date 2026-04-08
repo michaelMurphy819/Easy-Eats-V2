@@ -13,8 +13,6 @@ import { IngredientsList, type Ingredient } from '@/components/recipe/Ingredient
 import { CommentThread } from '@/components/recipe/CommentThread';
 import { UploadMeal } from '@/components/upload/UploadMeal';
 
-const supabase = createClient();
-
 interface RecipeDetailProps {
   recipeId: string | null;
   onClose: () => void;
@@ -31,6 +29,7 @@ function parseSteps(raw: any): string[] {
 }
 
 export function RecipeDetailOverlay({ recipeId, onClose }: RecipeDetailProps) {
+  const [supabase] = useState(() => createClient());
   const [recipe, setRecipe] = useState<any>(null);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [scaleFactor, setScaleFactor] = useState(1);
