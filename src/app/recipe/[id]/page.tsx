@@ -59,7 +59,7 @@ export default function RecipePage() {
         .select('id')
         .eq('recipe_id', recipe.id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (data) setIsLiked(true);
     }
@@ -121,7 +121,6 @@ export default function RecipePage() {
 
   return (
     <div className="bg-background min-h-screen pb-24 text-foreground">
-      {/* Navigation Header */}
       <div className="fixed top-6 left-6 z-50">
         <button 
           onClick={() => router.back()}
@@ -131,7 +130,6 @@ export default function RecipePage() {
         </button>
       </div>
 
-      {/* Hero Section */}
       <div className="h-[40vh] min-h-[320px] bg-border/10 flex items-center justify-center text-[100px] overflow-hidden relative">
         {recipe.image_url ? (
           <img 
@@ -145,10 +143,7 @@ export default function RecipePage() {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-100" />
       </div>
 
-      {/* Content Container */}
       <div className="px-6 max-w-2xl mx-auto -mt-16 relative z-10">
-        
-        {/* Title & Header Actions */}
         <div className="mb-10 flex items-end justify-between gap-4">
           <div className="flex-1">
             <div className="flex gap-2 mb-3">
@@ -174,7 +169,6 @@ export default function RecipePage() {
           </button>
         </div>
         
-        {/* Scaling Controls - Using your --card variable */}
         <div className="bg-card border border-border rounded-[32px] p-8 my-10 shadow-sm text-white">
           <p className="text-[10px] opacity-60 uppercase tracking-[0.25em] font-black mb-6">Adjust Servings</p>
           <div className="flex items-center gap-10">
@@ -193,7 +187,27 @@ export default function RecipePage() {
           </div>
         </div>
 
-        {/* Ingredients List */}
+        {/* Nutrition Stats Section */}
+        {recipe.nutrition && (
+          <div className="grid grid-cols-4 gap-4 mb-16">
+            {[
+              { label: 'Calories', value: recipe.nutrition.calories, unit: 'kcal', color: 'text-primary' },
+              { label: 'Protein', value: recipe.nutrition.protein, unit: 'g', color: 'text-blue-400' },
+              { label: 'Fat', value: recipe.nutrition.fat, unit: 'g', color: 'text-yellow-500' },
+              { label: 'Carbs', value: recipe.nutrition.carbs, unit: 'g', color: 'text-green-400' },
+            ].map((stat) => (
+              <div key={stat.label} className="flex flex-col items-center p-4 bg-foreground/[0.03] rounded-[24px] border border-border/50">
+                <span className={`text-xl font-black ${stat.color}`}>
+                  {recipe.base_servings > 0 ? Math.round((stat.value / recipe.base_servings) * scale) : 0}
+                </span>
+                <span className="text-[8px] font-black uppercase tracking-widest opacity-40 mt-1">
+                  {stat.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="mb-16">
           <h2 className="text-[11px] font-black opacity-40 uppercase tracking-[0.2em] mb-6 border-b border-border pb-3">Ingredients</h2>
           <div className="divide-y divide-border">

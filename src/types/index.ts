@@ -17,4 +17,12 @@ export interface Recipe {
   is_official: boolean;
   ingredients: Ingredient[];
   steps: string[];
+  base_servings: number;
+  nutrition?: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbs: number;
+  };
+  likes?: number; // Add this line for like count
 }

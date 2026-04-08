@@ -53,8 +53,8 @@ export function RecipeCard({
 
       // Using Promise.all to fetch both statuses at the exact same time!
       const [likeRes, saveRes] = await Promise.all([
-        supabase.from('likes').select('id').eq('recipe_id', recipeId).eq('user_id', currentUserId).single(),
-        supabase.from('recipe_saves').select('id').eq('recipe_id', recipeId).eq('user_id', currentUserId).single()
+        supabase.from('likes').select('id').eq('recipe_id', recipeId).eq('user_id', currentUserId).maybeSingle(),
+        supabase.from('recipe_saves').select('id').eq('recipe_id', recipeId).eq('user_id', currentUserId).maybeSingle()
       ]);
 
       if (likeRes.data) setIsLiked(true);

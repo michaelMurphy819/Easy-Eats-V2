@@ -43,20 +43,21 @@ export function ScaleControls({ baseServings, onChange }: ScaleControlsProps) {
   };
 
   return (
-    <div className="rounded-[24px] bg-white border border-border p-6 space-y-5 shadow-sm">
-      <p className="text-[10px] font-black uppercase tracking-[1.5px] text-foreground/30">
+    <div className="rounded-[24px] bg-card border border-border p-6 space-y-5 shadow-sm">
+      <p className="text-[10px] font-black uppercase tracking-[1.5px] text-muted-foreground/60">
         Scale Ingredients
       </p>
 
-      <div className="flex p-1 bg-foreground/5 rounded-2xl gap-1">
+      {/* Tabs */}
+      <div className="flex p-1 bg-muted rounded-2xl gap-1">
         {(['servings', 'days'] as ScaleMode[]).map((m) => (
           <button
             key={m}
             onClick={() => switchMode(m)}
             className={`relative flex-1 rounded-[14px] py-2.5 text-[11px] font-black uppercase tracking-wider transition-colors ${
               mode === m
-                ? 'text-white'
-                : 'text-foreground/40 hover:text-foreground/70'
+                ? 'text-primary-foreground' // Changed to foreground for contrast
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {mode === m && (
@@ -72,11 +73,12 @@ export function ScaleControls({ baseServings, onChange }: ScaleControlsProps) {
       </div>
 
       <div className="flex items-center justify-between px-2">
+        {/* Minus Button: Removed bg-white, added bg-secondary/muted classes */}
         <button
           type="button"
           onClick={() => adjust(-1)}
           disabled={currentVal <= min}
-          className="w-12 h-12 rounded-full bg-white border border-border flex items-center justify-center text-foreground/60 hover:border-primary hover:text-primary disabled:opacity-20 disabled:pointer-events-none transition-all shadow-sm active:scale-95"
+          className="w-12 h-12 rounded-full bg-secondary border border-border flex items-center justify-center text-foreground hover:border-primary hover:text-primary disabled:opacity-20 disabled:pointer-events-none transition-all shadow-sm active:scale-95"
         >
           <Minus size={20} />
         </button>
@@ -94,22 +96,23 @@ export function ScaleControls({ baseServings, onChange }: ScaleControlsProps) {
               {currentVal}
             </motion.span>
           </AnimatePresence>
-          <span className="text-[10px] text-foreground/30 font-black uppercase tracking-widest mt-1">
+          <span className="text-[10px] text-muted-foreground/60 font-black uppercase tracking-widest mt-1">
             {mode === 'servings' ? 'servings' : 'days'}
           </span>
         </div>
 
+        {/* Plus Button: Removed bg-white, added bg-secondary/muted classes */}
         <button
           type="button"
           onClick={() => adjust(1)}
           disabled={currentVal >= max}
-          className="w-12 h-12 rounded-full bg-white border border-border flex items-center justify-center text-foreground/60 hover:border-primary hover:text-primary disabled:opacity-20 disabled:pointer-events-none transition-all shadow-sm active:scale-95"
+          className="w-12 h-12 rounded-full bg-secondary border border-border flex items-center justify-center text-foreground hover:border-primary hover:text-primary disabled:opacity-20 disabled:pointer-events-none transition-all shadow-sm active:scale-95"
         >
           <Plus size={20} />
         </button>
       </div>
 
-      <p className="text-[11px] text-foreground/40 text-center font-medium">
+      <p className="text-[11px] text-muted-foreground text-center font-medium">
         {mode === 'days'
           ? `Meal prepping for ${days} day${days !== 1 ? 's' : ''}`
           : `Perfect for ${servings} ${servings === 1 ? 'person' : 'people'}`}

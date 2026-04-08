@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Minus, Plus, Users } from 'lucide-react'; 
+import { X, Minus, Plus } from 'lucide-react'; 
 import { createClient } from '@/lib/db/queries/client';
 
 import { PhotoDropzone } from './PhotoDropzone';
@@ -56,70 +56,115 @@ export function UploadMeal({ isOpen, onClose, onRefresh }: { isOpen: boolean, on
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (loading) return;
-    setLoading(true);
+  e.preventDefault();
+  if (loading) return;
+  setLoading(true);
 
-    try {
-      const { data: auth, error: authErr } = await supabase.auth.getUser();
-      if (authErr || !auth.user) throw new Error("Please log in to share recipes.");
+  try {
+    const { data: auth, error: authErr } = await supabase.auth.getUser();
+    if (authErr || !auth.user) throw new Error("Please log in to share recipes.");
 
-      let dbImageValue = null;
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${auth.user.id}/${Date.now()}.${fileExt}`;
-        const { error: upErr } = await supabase.storage.from('recipe-photos').upload(fileName, imageFile);
-        if (upErr) throw new Error("Image upload failed");
-        dbImageValue = fileName;
+    let dbImageValue = null;
+    if (imageFile) {
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${auth.user.id}/${Date.now()}.${fileExt}`;
+      const { error: upErr } = await supabase.storage.from('recipe-photos').upload(fileName, imageFile);
+      if (upErr) throw new Error("Image upload failed");
+      dbImageValue = fileName;
+    }
+
+    const { data: recipeData, error: recipeError } = await supabase
+      .from('recipes')
+      .insert([{
+        title: formData.title, 
+        emoji: formData.emoji,
+        time_estimate: formData.time_estimate, 
+        difficulty: formData.skill_level, 
+        base_servings: formData.base_servings,
+        author_id: auth.user.id, 
+        image_url: dbImageValue,
+        steps: formData.steps.filter(s => s.trim() !== ''),
+        tags: formData.tags,
+      }])
+      .select().single();
+
+    if (recipeError) throw recipeError;
+
+    const validIngredients = formData.ingredients.filter(i => i.item.trim() !== '');
+
+    if (validIngredients.length > 0) {
+      const ingredientsToInsert = validIngredients.map((i) => {
+        const match = i.amount.trim().match(/^([\d\/\.\s\-]+)?(.*)$/);
+        const rawQty = match?.[1]?.trim() || "1";
+        const unit = match?.[2]?.trim() || "unit"; // Default to "unit" instead of empty string
+        
+        const parseQty = (str: string) => {
+          try {
+            if (str.includes('/')) {
+              const parts = str.split(' ');
+              if (parts.length > 1) return parseFloat(parts[0]) + (eval(parts[1]));
+              return eval(str);
+            }
+            return parseFloat(str);
+          } catch { return 1; }
+        };
+
+        return {
+          recipe_id: recipeData.id,
+          name: i.item,
+          amount: i.amount, 
+          quantity: parseQty(rawQty) || 1,
+          unit: unit,
+        };
+      });
+
+      const { error: ingError } = await supabase.from('ingredients').insert(ingredientsToInsert);
+      if (ingError) {
+        await supabase.from('recipes').delete().eq('id', recipeData.id);
+        throw ingError;
       }
 
-      const { data: recipeData, error: recipeError } = await supabase
-        .from('recipes')
-        .insert([{
-          title: formData.title, 
-          emoji: formData.emoji,
-          time_estimate: formData.time_estimate, 
-          difficulty: formData.skill_level, 
-          base_servings: formData.base_servings,
-          author_id: auth.user.id, 
-          image_url: dbImageValue,
-          steps: formData.steps.filter(s => s.trim() !== ''),
-          tags: formData.tags
-        }])
-        .select().single();
-
-      if (recipeError) throw recipeError;
-
-      const validIngredients = formData.ingredients.filter(i => i.item.trim() !== '');
-      if (validIngredients.length > 0) {
-        const ingredientsToInsert = validIngredients.map((i) => {
-          const parts = i.amount.trim().split(' ');
-          const qtyString = parts[0] || '0';
-          return {
-            recipe_id: recipeData.id,
-            name: i.item,
-            amount: qtyString, 
-            quantity: parseFloat(qtyString) || 0,
-            unit: parts.slice(1).join(' ') || ''
-          };
+      // CALLING THE MACRO API
+      try {
+        const macroRes = await fetch('/api/macros/calculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            ingredients: ingredientsToInsert.map(ing => ({
+              name: ing.name,
+              amount: ing.quantity.toString(),
+              unit: ing.unit || "unit" // Ensure the API always gets a unit string
+            })) 
+          }),
         });
 
-        const { error: ingError } = await supabase.from('ingredients').insert(ingredientsToInsert);
-        if (ingError) {
-          await supabase.from('recipes').delete().eq('id', recipeData.id);
-          throw ingError;
+        if (macroRes.ok) {
+          const nutrition = await macroRes.json();
+          
+          // Check if we actually got data back (not all zeros)
+          if (nutrition.calories > 0) {
+            await supabase
+              .from('recipes')
+              .update({ nutrition })
+              .eq('id', recipeData.id);
+          } else {
+            console.warn('[macros] API returned 0 calories. Check ingredient names or units.');
+          }
         }
+      } catch (macroErr) {
+        console.warn('[macros] Macro calculation failed:', macroErr);
       }
-
-      onRefresh?.(); 
-      onClose?.();   
-    } catch (error: any) {
-      console.error("Upload Error:", error);
-      alert(error?.message || "Upload failed.");
-    } finally {
-      setLoading(false);
     }
-  };
+
+    onRefresh?.(); 
+    onClose?.();   
+  } catch (error: any) {
+    console.error("Upload Error:", error);
+    alert(error?.message || "Upload failed.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (!mounted) return null;
 
@@ -179,7 +224,6 @@ export function UploadMeal({ isOpen, onClose, onRefresh }: { isOpen: boolean, on
                   </div>
                 </div>
 
-                {/* Servings & Meta Row */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-widest text-foreground/30 pl-1">
