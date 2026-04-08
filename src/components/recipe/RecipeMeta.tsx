@@ -72,7 +72,7 @@ export function RecipeMeta({
       {/* Time Pill */}
       {timeEstimate != null && timeEstimate !== '' && (
         <Pill
-          className="text-foreground/60 bg-white border-border shadow-sm"
+          className="text-foreground/60 bg-background border-border shadow-sm"
           icon={<Clock size={13} className="text-primary" />}
           label={`${timeEstimate}m`}
         />
@@ -81,7 +81,7 @@ export function RecipeMeta({
       {/* Cost Pill */}
       {costEstimate && (
         <Pill
-          className="text-foreground/60 bg-white border-border shadow-sm"
+          className="text-foreground/60 bg-background border-border shadow-sm"
           icon={<DollarSign size={13} className="text-primary" />}
           label={costEstimate}
         />

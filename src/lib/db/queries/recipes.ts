@@ -90,3 +90,25 @@ export const fetchRecipeById = async (id: string) => {
     return null;
   }
 };
+export const deleteRecipe = async (id: string) => {
+  // Supabase RLS will handle security, but we'll call the delete
+  const { error } = await supabase
+    .from('recipes')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+  return true;
+};
+
+export const updateRecipe = async (id: string, updates: any) => {
+  const { data, error } = await supabase
+    .from('recipes')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+};

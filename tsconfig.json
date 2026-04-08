@@ -38,7 +38,7 @@
     // Removed "src/main.jsx" to prevent Vite/Next.js conflicts
     ,
     ".next/dev/types/**/*.ts"
-  ],
+, "src/components/providers/ClientProvider.stsx"  ],
   "exclude": [
     "node_modules"
   ]

@@ -2,274 +2,174 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { createClient } from '@/lib/db/queries/client';
-import { ArrowLeft, Save, LogOut, Trash2, AlertTriangle, Camera, Loader2 } from 'lucide-react';
-import Link from 'next/link';
+import { 
+  ArrowLeft, LogOut, Trash2, Bell, Shield, 
+  Moon, CircleHelp, FileText, ChevronRight, AlertCircle, Sun 
+} from 'lucide-react';
 
 const supabase = createClient();
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [username, setUsername] = useState('');
+  const { theme, setTheme, resolvedTheme } = useTheme();
   
-  // Danger Zone States
-  const [showDeleteWarning, setShowDeleteWarning] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  
-  // Form State
-  const [formData, setFormData] = useState({
-    display_name: '',
-    bio: '',
-    avatar_url: '',
-    skill_level: 'Beginner',
-    is_vegetarian: false,
-    is_dairy_free: false,
-  });
+  // State
+  const [mounted, setMounted] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
+  // useEffect only runs on the client, so now we can safely show the UI
   useEffect(() => {
-    async function loadProfile() {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      
-      if (!authUser) {
-        router.push('/auth');
-        return;
-      }
-      
-      setUserId(authUser.id);
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authUser.id)
-        .single();
-
-      if (profile) {
-        setUsername(profile.username);
-        setFormData({
-          display_name: profile.display_name || '',
-          bio: profile.bio || '',
-          avatar_url: profile.avatar_url || '',
-          skill_level: profile.skill_level || 'Beginner',
-          is_vegetarian: profile.is_vegetarian || false,
-          is_dairy_free: profile.is_dairy_free || false,
-        });
-      }
-      setLoading(false);
-    }
-    
-    loadProfile();
-  }, [router]);
-
-  const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setUploading(true);
-      if (!event.target.files || event.target.files.length === 0) return;
-
-      const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const filePath = `avatars/${userId}-${Math.random()}.${fileExt}`;
-
-      // Upload to your existing bucket
-      const { error: uploadError } = await supabase.storage
-        .from('recipe-photos')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // Get Public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('recipe-photos')
-        .getPublicUrl(filePath);
-
-      setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
-    } catch (error: any) {
-      alert('Error uploading image: ' + error.message);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userId) return;
-    
-    setSaving(true);
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        display_name: formData.display_name,
-        bio: formData.bio,
-        avatar_url: formData.avatar_url,
-        skill_level: formData.skill_level,
-        is_vegetarian: formData.is_vegetarian,
-        is_dairy_free: formData.is_dairy_free,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
-
-    setSaving(false);
-
-    if (!error) {
-      // Force hard reload to bust Next.js cache
-      window.location.href = `/profile/${username}`;
-    } else {
-      alert("Error saving profile: " + error.message);
-    }
-  };
+    setMounted(true);
+  }, []);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push('/auth');
   };
 
-  const handleDeleteAccount = async () => {
-    if (!userId) return;
-    setIsDeleting(true);
-    const { error } = await supabase.from('profiles').delete().eq('id', userId);
+  const handlePasswordReset = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user?.email) {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/auth/update-password`,
+      });
+      if (error) alert(error.message);
+      else alert("Check your email for the reset link!");
+    }
+  };
 
+  const toggleTheme = () => {
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+  };
+
+  const handleDeleteAccount = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { error } = await supabase.from('profiles').delete().eq('id', user.id);
     if (!error) {
       await supabase.auth.signOut();
       router.push('/auth');
     } else {
-      alert("Error deleting account: " + error.message);
-      setIsDeleting(false);
-      setShowDeleteWarning(false);
+      alert("Error: " + error.message);
     }
   };
 
-  if (loading) return (
-    <div className="h-screen bg-background flex items-center justify-center">
-      <Loader2 className="w-6 h-6 text-primary animate-spin" />
-    </div>
-  );
+  // Prevent rendering theme-specific UI until mounted to avoid flickering/errors
+  if (!mounted) return null;
 
   return (
-    <main className="min-h-screen bg-background pb-20 px-4 md:px-0 relative">
-      <div className="max-w-2xl mx-auto pt-12">
+    <main className="min-h-screen bg-background transition-colors duration-300">
+      <div className="max-w-2xl mx-auto px-4 pt-8 pb-20">
         
-        <div className="flex items-center justify-between mb-10">
-          <div className="flex items-center gap-4">
-            <Link href={`/profile/${username}`} className="p-2 -ml-2 text-foreground/60 hover:text-foreground">
-              <ArrowLeft size={24} />
-            </Link>
-            <h1 className="font-serif text-3xl font-bold text-foreground">Settings</h1>
-          </div>
-          <button 
-            onClick={handleSave}
-            disabled={saving || uploading}
-            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 rounded-xl font-bold text-sm transition-colors disabled:opacity-50"
-          >
-            <Save size={16} />
-            {saving ? 'Saving...' : 'Save Profile'}
+        {/* Navigation */}
+        <div className="flex items-center gap-4 mb-8">
+          <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-foreground/5 rounded-full transition-colors">
+            <ArrowLeft size={24} />
           </button>
+          <h1 className="font-serif text-2xl font-bold">Settings</h1>
         </div>
 
-        <div className="space-y-8">
-          {/* Avatar Upload Section */}
-          <div className="flex flex-col items-center gap-4 p-8 bg-foreground/[0.02] rounded-2xl border border-dashed border-border">
-            <div className="relative w-28 h-28 rounded-full overflow-hidden border-4 border-background shadow-md bg-muted flex items-center justify-center text-5xl">
-              {formData.avatar_url ? (
-                <img src={formData.avatar_url} className="w-full h-full object-cover" alt="Profile" />
-              ) : (
-                '👨‍🍳'
-              )}
-              {uploading && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 text-white animate-spin" />
-                </div>
-              )}
-            </div>
-            <label className="cursor-pointer flex items-center gap-2 bg-background border border-border hover:bg-foreground/[0.02] px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm">
-              <Camera size={16} />
-              {uploading ? 'Uploading...' : 'Change Photo'}
-              <input type="file" accept="image/*" onChange={uploadAvatar} disabled={uploading} className="hidden" />
-            </label>
-          </div>
+        <div className="space-y-6">
+          {/* Preferences Group */}
+          <section className="bg-foreground/[0.02] border border-border rounded-3xl overflow-hidden shadow-sm">
+            <SettingsItem 
+              icon={<Shield size={20}/>} 
+              label="Change Password" 
+              onClick={handlePasswordReset}
+            />
+            <SettingsItem 
+              icon={<Bell size={20}/>} 
+              label="Push Notifications" 
+              onClick={() => setNotificationsEnabled(!notificationsEnabled)}
+              detail={notificationsEnabled ? "On" : "Off"}
+            />
+            <SettingsItem 
+              icon={resolvedTheme === 'dark' ? <Moon size={20}/> : <Sun size={20}/>} 
+              label="Appearance" 
+              onClick={toggleTheme}
+              detail={resolvedTheme === 'dark' ? "Dark" : "Light"}
+            />
+          </section>
 
-          <div className="space-y-4 bg-foreground/[0.02] p-6 rounded-2xl border border-border">
-            <h2 className="font-serif text-xl font-bold mb-4">Basic Info</h2>
-            <div>
-              <label className="block text-sm font-bold text-foreground/70 mb-2">Display Name</label>
-              <input 
-                type="text"
-                value={formData.display_name}
-                onChange={(e) => setFormData({...formData, display_name: e.target.value})}
-                className="w-full bg-background border border-border rounded-xl py-3 px-4 text-foreground outline-none focus:border-primary transition-all"
-                placeholder="Chef Name"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-foreground/70 mb-2">Bio</label>
-              <textarea 
-                value={formData.bio}
-                onChange={(e) => setFormData({...formData, bio: e.target.value})}
-                rows={3}
-                className="w-full bg-background border border-border rounded-xl py-3 px-4 text-foreground outline-none focus:border-primary transition-all resize-none"
-                placeholder="Tell us about your cooking..."
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-foreground/70 mb-2">Skill Level</label>
-              <select 
-                value={formData.skill_level}
-                onChange={(e) => setFormData({...formData, skill_level: e.target.value})}
-                className="w-full bg-background border border-border rounded-xl py-3 px-4 text-foreground outline-none focus:border-primary transition-all"
-              >
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate">Intermediate</option>
-                <option value="Advanced">Advanced</option>
-              </select>
-            </div>
-          </div>
+          {/* Support Group */}
+          <section className="bg-foreground/[0.02] border border-border rounded-3xl overflow-hidden shadow-sm">
+            <SettingsItem icon={<CircleHelp size={20}/>} label="Help & Support" onClick={() => window.location.href = 'mailto:easyeatsadmin@gmail.com'} />
+            <SettingsItem icon={<FileText size={20}/>} label="Terms of Service" onClick={() => router.push('/terms')} />
+            <SettingsItem icon={<FileText size={20}/>} label="Privacy Policy" onClick={() => router.push('/privacy')} />
+          </section>
 
-          <div className="space-y-4 bg-foreground/[0.02] p-6 rounded-2xl border border-border">
-            <h2 className="font-serif text-xl font-bold mb-4">Dietary Preferences</h2>
-            <label className="flex items-center gap-3 p-3 bg-background border border-border rounded-xl cursor-pointer hover:bg-foreground/[0.02]">
-              <input type="checkbox" checked={formData.is_vegetarian} onChange={(e) => setFormData({...formData, is_vegetarian: e.target.checked})} className="w-5 h-5 accent-primary" />
-              <span className="font-medium">Vegetarian</span>
-            </label>
-            <label className="flex items-center gap-3 p-3 bg-background border border-border rounded-xl cursor-pointer hover:bg-foreground/[0.02]">
-              <input type="checkbox" checked={formData.is_dairy_free} onChange={(e) => setFormData({...formData, is_dairy_free: e.target.checked})} className="w-5 h-5 accent-primary" />
-              <span className="font-medium">Dairy-Free</span>
-            </label>
-          </div>
-
-          <div className="space-y-4 bg-foreground/[0.02] p-6 rounded-2xl border border-border">
-            <h2 className="font-serif text-xl font-bold mb-4 text-red-500">Danger Zone</h2>
-            <button onClick={handleSignOut} className="w-full flex items-center justify-center gap-2 p-4 bg-background border border-border hover:bg-red-50 hover:text-red-600 rounded-xl font-bold transition-colors">
-              <LogOut size={18} /> Log Out
+          {/* Logout/Delete Group */}
+          <section className="bg-red-500/[0.02] border border-red-500/10 rounded-3xl overflow-hidden shadow-sm">
+            <button 
+              onClick={handleSignOut}
+              className="w-full flex items-center justify-between p-5 hover:bg-red-500/5 transition-colors group"
+            >
+              <div className="flex items-center gap-4 text-red-500">
+                <LogOut size={20} />
+                <span className="font-bold">Log Out</span>
+              </div>
             </button>
-            <button onClick={() => setShowDeleteWarning(true)} className="w-full flex items-center justify-center gap-2 p-4 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-xl font-bold transition-colors">
-              <Trash2 size={18} /> Delete Account
+            <button 
+              onClick={() => setShowDelete(true)}
+              className="w-full flex items-center justify-between p-5 hover:bg-red-500/5 transition-colors border-t border-red-500/10"
+            >
+              <div className="flex items-center gap-4 text-red-500/60">
+                <Trash2 size={20} />
+                <span className="font-bold text-sm">Delete Account</span>
+              </div>
             </button>
-          </div>
+          </section>
+
+          <footer className="text-center space-y-2 mt-8">
+            <p className="text-[10px] text-foreground/20 font-black uppercase tracking-widest">
+              Easy Eats v1.1.0 • Built with Next.js, Supabase, and a lot of ❤️
+            </p>
+          </footer>
         </div>
       </div>
 
-      {showDeleteWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-          <div className="bg-background border border-border rounded-2xl p-6 max-w-md w-full shadow-2xl">
-            <div className="flex items-center gap-4 text-red-500 mb-4">
-              <AlertTriangle size={32} />
-              <h3 className="font-serif text-2xl font-bold">Are you sure?</h3>
+      {/* Delete Modal */}
+      {showDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-background border border-border rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle size={32} />
             </div>
-            <p className="text-foreground/70 mb-6">This action is permanent. All recipes and profile data will be wiped.</p>
+            <h3 className="text-xl font-bold mb-2">Wait, Chef!</h3>
+            <p className="text-sm text-foreground/60 mb-8">This action is permanent. All your curated recipes and stats will be gone forever.</p>
             <div className="flex flex-col gap-3">
-              <button onClick={handleDeleteAccount} disabled={isDeleting} className="w-full py-3 bg-red-500 text-white rounded-xl font-bold disabled:opacity-50">
-                {isDeleting ? 'Deleting...' : 'Yes, Delete My Account'}
+              <button onClick={handleDeleteAccount} className="bg-red-500 hover:bg-red-600 text-white py-4 rounded-2xl font-black text-sm uppercase transition-colors">
+                Delete Everything
               </button>
-              <button onClick={() => setShowDeleteWarning(false)} disabled={isDeleting} className="w-full py-3 bg-background border border-border rounded-xl font-bold">
-                Cancel
+              <button onClick={() => setShowDelete(false)} className="bg-foreground/5 hover:bg-foreground/10 py-4 rounded-2xl font-black text-sm uppercase transition-colors">
+                I'll Stay
               </button>
             </div>
           </div>
         </div>
       )}
     </main>
+  );
+}
+
+function SettingsItem({ icon, label, detail, onClick }: any) {
+  return (
+    <button 
+      onClick={onClick}
+      className="w-full flex items-center justify-between p-5 hover:bg-foreground/[0.03] cursor-pointer transition-colors border-b border-border/50 last:border-0"
+    >
+      <div className="flex items-center gap-4">
+        <div className="text-foreground/40">{icon}</div>
+        <span className="font-bold text-sm text-foreground">{label}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        {detail && <span className="text-xs font-bold text-primary uppercase">{detail}</span>}
+        <ChevronRight size={16} className="text-foreground/10" />
+      </div>
+    </button>
   );
 }

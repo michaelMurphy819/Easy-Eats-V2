@@ -19,13 +19,12 @@ interface ExplorePageProps {
 async function RecipeGrid({ params }: { params: Awaited<ExplorePageProps['searchParams']> }) {
   const { sort, tags, query } = params;
 
-  const isDefaultState = !sort && !tags && !query;
-  
   const validSorts: SortOption[] = ['popular', 'newest', 'trending']; 
   const activeSort = (sort && validSorts.includes(sort as SortOption))
     ? (sort as SortOption)
-    : (isDefaultState ? 'popular' : 'newest');
+    : (!sort && !tags && !query ? 'popular' : 'newest');
 
+  // getRecipes logic from your file
   const recipes = await getRecipes({
     sort: activeSort,
     tag: tags ?? 'All',
@@ -34,8 +33,10 @@ async function RecipeGrid({ params }: { params: Awaited<ExplorePageProps['search
 
   if (recipes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-foreground/40">
-        <p className="font-medium">No recipes found matching your filters.</p>
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <span className="text-4xl mb-4">🔍</span>
+        <p className="text-white/40 text-sm font-medium">No matches found.</p>
+        <p className="text-white/20 text-xs mt-1">Try adjusting your search or filters.</p>
       </div>
     );
   }
@@ -43,47 +44,35 @@ async function RecipeGrid({ params }: { params: Awaited<ExplorePageProps['search
   return <ExploreClient recipes={recipes} />;
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────────────
-
 export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const resolvedParams = await searchParams;
-  const { sort, tags, query } = resolvedParams;
-  const isDefaultState = !sort && !tags && !query;
+  const { query, tags } = resolvedParams;
+  const isDefaultState = !query && (!tags || tags === 'All');
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Sticky header ── */}
-      <div className="sticky top-[65px] z-40 bg-background/90 backdrop-blur-md border-b border-border pb-3 pt-4">
+      {/* ── Header Section ── */}
+      <div className="sticky top-[65px] z-40 bg-background/95 backdrop-blur-md border-b border-border pt-6 pb-4">
         <div className="max-w-screen-xl mx-auto">
-          {/* Page title row */}
-          <div className="px-4 mb-4">
-            {isDefaultState ? (
-              <div>
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="text-lg">🔥</span>
-                  <h2 className="text-xl font-bold text-foreground tracking-tight">
-                    Trending This Week
-                  </h2>
-                </div>
-                <p className="text-foreground/40 text-xs pl-7">
-                  The most-liked recipes from the last 7 days
-                </p>
-              </div>
-            ) : (
-              <div>
-                <h2 className="text-xl font-bold text-foreground tracking-tight">Explore</h2>
-              </div>
+          
+          <div className="px-4 mb-6">
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">
+              {isDefaultState ? "Explore" : query ? `Results for "${query}"` : `${tags} Recipes`}
+            </h2>
+            {isDefaultState && (
+              <p className="text-foreground/40 text-xs mt-1">
+                Discover the community's favorite recipes
+              </p>
             )}
           </div>
 
-          <Suspense fallback={<div className="h-10" />}>
+          <Suspense fallback={<div className="h-28" />}>
             <FilterBar />
           </Suspense>
         </div>
       </div>
 
-      {/* ── Recipe grid ── */}
-      <main className="max-w-screen-xl mx-auto py-6 px-4">
+      <main className="max-w-screen-xl mx-auto py-8">
         <Suspense fallback={<LoadingShimmer />}>
           <RecipeGrid params={resolvedParams} />
         </Suspense>
@@ -91,8 +80,3 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
     </div>
   );
 }
-
-export const metadata = {
-  title: 'Explore — Easy Eats',
-  description: 'Discover trending and top-rated recipes from the Easy Eats community.',
-};

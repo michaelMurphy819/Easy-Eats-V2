@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
-import { ReactNode } from "react"; // Added this import
+import { ReactNode } from "react";
 import "./globals.css";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { DesktopSidebar } from "@/components/layout/DesktopSidebar";
-import { ModalProvider } from "@/components/providers/ModalProvider";
+import { ClientProviders } from "@/components/providers/ClientProviders";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="light">
+    <html lang="en" suppressHydrationWarning> 
       <body className={`
         ${inter.variable} 
         ${playfair.variable} 
@@ -32,8 +32,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         antialiased 
         font-sans
       `}>
-        {/* ModalProvider handles the seamless "Post Recipe" overlay across all pages */}
-        <ModalProvider>
+        {/* All client-side providers are now bundled here */}
+        <ClientProviders>
           <div className="flex min-h-screen justify-center bg-background">
             
             {/* Desktop Sidebar (Left) */}
@@ -43,24 +43,20 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
             {/* Main Content Area */}
             <main className="w-full max-w-screen-xl relative overflow-x-hidden border-x border-border bg-background flex flex-col">
-              {/* Header Spacer */}
               <div className="h-10 w-full bg-background sticky top-0 z-40" />
               
-              {/* Page Content */}
               <div className="flex-1 pb-24 px-4 md:px-8">
                 {children}
               </div>
               
-              {/* Mobile Navigation (Bottom) */}
               <div className="lg:hidden">
                 <MobileNav />
               </div>
             </main>
             
-            {/* Symmetrical Spacer (Right) */}
             <div className="hidden lg:block w-64 bg-background" />
           </div>
-        </ModalProvider>
+        </ClientProviders>
       </body>
     </html>
   );

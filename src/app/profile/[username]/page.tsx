@@ -42,7 +42,7 @@ export default function ProfilePage() {
       .from('profiles')
       .select('*')
       .ilike('username', username)
-      .single();
+      .maybeSingle();
 
     if (profileError || !profileData) {
       setUser(null);
@@ -70,7 +70,7 @@ export default function ProfilePage() {
         .select('*')
         .eq('follower_id', authUser.id)
         .eq('following_id', profileData.id)
-        .single();
+        .maybeSingle();
         
       setIsFollowing(!!followData);
     }
@@ -137,7 +137,7 @@ export default function ProfilePage() {
       setAuthUser(auth);
       
       if (auth && username === 'me') {
-        const { data: profile } = await supabase.from('profiles').select('username').eq('id', auth.id).single();
+        const { data: profile } = await supabase.from('profiles').select('username').eq('id', auth.id).maybeSingle();
         if (profile) router.push(`/profile/${profile.username}`);
       } else if (!auth && username === 'me') {
         router.push('/auth');

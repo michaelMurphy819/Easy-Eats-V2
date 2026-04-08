@@ -1,29 +1,31 @@
 @import "tailwindcss";
 
 :root {
-  /* Refined Palette */
+  /* --- Light Mode Colors --- */
   --background: #FCFAF8; 
   --foreground: #1A1A1A;
   --primary: #3cadd2;
   --primary-foreground: #ffffff;
   
-  /* Using oklch for consistent perceived lightness */
-  --card: oklch(98% 0.01 257);      /* Very light card for light mode */
-  --border: oklch(92% 0.01 252);    /* Subtle border */
+  --card: oklch(98% 0.01 257);
+  --border: oklch(92% 0.01 252);
   
-  /* Transition settings */
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --duration-theme: 300ms;
 }
 
-/* Optional: Dark Mode Overrides */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f8fafc;
-    --card: oklch(25% 0.02 257);
-    --border: oklch(35% 0.02 252);
-  }
+/* CRITICAL FIX: 
+   Instead of @media (prefers-color-scheme: dark), 
+   we use the .dark class so your toggle button can control it.
+*/
+.dark {
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: oklch(25% 0.02 257);
+  --border: oklch(35% 0.02 252);
+  
+  /* You can also adjust primary for dark mode if it feels too bright */
+  --primary: #4fc3f7; 
 }
 
 @theme {
@@ -35,22 +37,23 @@
   --color-border: var(--border);
 }
 
-/* Base Styles */
 @layer base {
+  /* Apply the variables to the body. 
+     Using @apply in v4 works best when referencing the theme variables 
+  */
   body {
-    @apply bg-background text-foreground;
-    /* This creates the smooth transition you asked for */
+    background-color: var(--background);
+    color: var(--foreground);
     transition: background-color var(--duration-theme) var(--ease-standard), 
-                color var(--duration-theme) var(--ease-standard);
-    font-feature-settings: "rlig" 1, "calt" 1; /* Better typography rendering */
+                color var(--duration-theme) var(--ease-standard),
+                border-color var(--duration-theme) var(--ease-standard);
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 
-  /* Smooth scrolling for the whole app */
   html {
     scroll-behavior: smooth;
   }
 
-  /* Custom text selection color to match your brand */
   ::selection {
     background-color: var(--primary);
     color: white;
@@ -58,11 +61,6 @@
 }
 
 @layer utilities {
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
